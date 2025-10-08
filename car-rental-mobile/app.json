@@ -1,0 +1,8 @@
+{
+  "expo": {
+    "name": "Car Rental Mobile",
+    "slug": "car-rental-mobile",
+    "platforms": ["ios", "android", "web"],
+    "version": "1.0.0"
+  }
+}
