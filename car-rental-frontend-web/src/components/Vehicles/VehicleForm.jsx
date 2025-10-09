@@ -16,10 +16,12 @@ const VehicleForm = ({ vehicle, onClose }) => {
     status: "available",
   });
 
+  const [imageFile, setImageFile] = useState(null);
+  const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ Prefill form if editing
+  // Prefill if editing
   useEffect(() => {
     if (vehicle) {
       setFormData({
@@ -34,30 +36,53 @@ const VehicleForm = ({ vehicle, onClose }) => {
         dailyRate: vehicle.daily_rate || 0,
         status: vehicle.status || "available",
       });
+      if (vehicle.image_url) setPreview(vehicle.image_url);
     }
   }, [vehicle]);
 
-  // ✅ Handle form field changes
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ✅ Submit form
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setImageFile(file);
+    if (file) setPreview(URL.createObjectURL(file)); // preview before upload
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      if (vehicle) {
-        await updateVehicle(vehicle.vehicle_id, formData);
-      } else {
-        await createVehicle(formData);
+      const data = new FormData();
+
+      // Append all fields
+      Object.keys(formData).forEach((key) => {
+        data.append(key, formData[key]);
+      });
+
+      // ✅ Append image under the exact name the backend expects
+      if (imageFile) data.append("image", imageFile);
+
+      // Debugging logs
+      for (const pair of data.entries()) {
+        console.log("🚀 FormData:", pair[0], pair[1]);
       }
-      onClose(); // Close modal after success
+
+      if (vehicle) {
+        await updateVehicle(vehicle.vehicle_id, data, true);
+      } else {
+        await createVehicle(data, true);
+      }
+
+      alert("✅ Vehicle saved successfully!");
+      onClose();
     } catch (err) {
       console.error("Vehicle save error:", err);
       setError(err.response?.data?.message || "Error saving vehicle");
+    } finally {
       setLoading(false);
     }
   };
@@ -75,7 +100,7 @@ const VehicleForm = ({ vehicle, onClose }) => {
           </button>
         </div>
 
-        {/* Error Alert */}
+        {/* Error */}
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
@@ -83,72 +108,66 @@ const VehicleForm = ({ vehicle, onClose }) => {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} encType="multipart/form-data">
           <div className="grid grid-cols-2 gap-4">
             {/* Registration Number */}
             <div>
               <label className="block text-gray-700 font-semibold mb-2">
-                Registration Number *
+                Registration Number
               </label>
               <input
                 type="text"
                 value={formData.registrationNumber}
                 onChange={(e) => handleChange("registrationNumber", e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Make */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Make *</label>
+              <label className="block text-gray-700 font-semibold mb-2">Make</label>
               <input
                 type="text"
                 value={formData.make}
                 onChange={(e) => handleChange("make", e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Model */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Model *</label>
+              <label className="block text-gray-700 font-semibold mb-2">Model</label>
               <input
                 type="text"
                 value={formData.model}
                 onChange={(e) => handleChange("model", e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Year */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Year *</label>
+              <label className="block text-gray-700 font-semibold mb-2">Year</label>
               <input
                 type="number"
                 value={formData.year}
                 onChange={(e) => handleChange("year", e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Category *</label>
+              <label className="block text-gray-700 font-semibold mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => handleChange("category", e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="economy">Economy</option>
+                <option value="standard">Standard</option>
                 <option value="luxury">Luxury</option>
-                <option value="SUV">SUV</option>
-                <option value="van">Van</option>
-                <option value="sports">Sports</option>
+                <option value="suv">SUV</option>
               </select>
             </div>
 
@@ -159,7 +178,7 @@ const VehicleForm = ({ vehicle, onClose }) => {
                 type="text"
                 value={formData.color}
                 onChange={(e) => handleChange("color", e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -172,7 +191,7 @@ const VehicleForm = ({ vehicle, onClose }) => {
                 type="number"
                 value={formData.numberOfSeats}
                 onChange={(e) => handleChange("numberOfSeats", e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -181,25 +200,22 @@ const VehicleForm = ({ vehicle, onClose }) => {
               <label className="block text-gray-700 font-semibold mb-2">Mileage</label>
               <input
                 type="number"
-                step="0.01"
                 value={formData.mileage}
                 onChange={(e) => handleChange("mileage", e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Daily Rate */}
             <div>
               <label className="block text-gray-700 font-semibold mb-2">
-                Daily Rate ($) *
+                Daily Rate (ZAR)
               </label>
               <input
                 type="number"
-                step="0.01"
                 value={formData.dailyRate}
                 onChange={(e) => handleChange("dailyRate", e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -209,12 +225,33 @@ const VehicleForm = ({ vehicle, onClose }) => {
               <select
                 value={formData.status}
                 onChange={(e) => handleChange("status", e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="available">Available</option>
-                <option value="rented">Rented</option>
+                <option value="booked">Booked</option>
                 <option value="maintenance">Maintenance</option>
               </select>
+            </div>
+
+            {/* Vehicle Image */}
+            <div className="col-span-2">
+              <label className="block text-gray-700 font-semibold mb-2">
+                Vehicle Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="w-full px-2 py-1 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+
+              {preview && (
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="mt-2 w-40 h-28 object-cover rounded border"
+                />
+              )}
             </div>
           </div>
 

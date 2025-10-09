@@ -102,46 +102,61 @@ const VehicleList = () => {
             </tr>
           </thead>
           <tbody>
-            {vehicles.map((vehicle) => (
-              <tr key={vehicle.vehicle_id} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm">#{vehicle.vehicle_id}</td>
-                <td className="px-4 py-3 text-sm">{vehicle.registration_number}</td>
-                <td className="px-4 py-3 text-sm">{vehicle.make} {vehicle.model}</td>
-                <td className="px-4 py-3 text-sm">{vehicle.year}</td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                    {vehicle.category}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-sm">${vehicle.daily_rate}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
-                    vehicle.status === 'rented' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {vehicle.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleEdit(vehicle)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <FaEdit size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(vehicle.vehicle_id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <FaTrash size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+  {vehicles.map((vehicle) => (
+    <tr key={vehicle.vehicle_id} className="border-b hover:bg-gray-50">
+      <td className="px-4 py-3 text-sm">#{vehicle.vehicle_id}</td>
+      
+      {/* Vehicle Image */}
+      <td className="px-4 py-3">
+        {vehicle.image_url ? (
+          <img 
+            src={vehicle.image_url} 
+            alt={vehicle.make + " " + vehicle.model} 
+            className="w-20 h-12 object-cover rounded border"
+          />
+        ) : (
+          <span className="text-gray-400 text-xs">No Image</span>
+        )}
+      </td>
+      
+      <td className="px-4 py-3 text-sm">{vehicle.registration_number}</td>
+      <td className="px-4 py-3 text-sm">{vehicle.make} {vehicle.model}</td>
+      <td className="px-4 py-3 text-sm">{vehicle.year}</td>
+      <td className="px-4 py-3">
+        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+          {vehicle.category}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-sm">R{vehicle.daily_rate}</td>
+      <td className="px-4 py-3">
+        <span className={`px-2 py-1 text-xs rounded-full ${
+          vehicle.status === 'available' ? 'bg-green-100 text-green-800' :
+          vehicle.status === 'rented' ? 'bg-yellow-100 text-yellow-800' :
+          'bg-red-100 text-red-800'
+        }`}>
+          {vehicle.status}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => handleEdit(vehicle)}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            <FaEdit size={18} />
+          </button>
+          <button 
+            onClick={() => handleDelete(vehicle.vehicle_id)}
+            className="text-red-600 hover:text-red-800"
+          >
+            <FaTrash size={18} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
         </table>
       </div>
 

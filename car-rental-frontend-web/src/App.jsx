@@ -11,7 +11,7 @@ import BookingList from './components/Bookings/BookingList';
 import RentalList from './components/Rentals/RentalList';
 import InvoiceList from './components/Invoices/InvoiceList';
 import MaintenanceList from './components/Maintenance/MaintenanceList';
-// import Reports from './components/Reports/Reports';
+import Reports from './components/Reports/Reports';
 
 const App = () => {
   return (
@@ -99,7 +99,7 @@ const App = () => {
             }
           />
           
-          {/* <Route
+          <Route
             path="/reports"
             element={
               <PrivateRoute allowedRoles={['manager']}>
@@ -108,7 +108,7 @@ const App = () => {
                 </Layout>
               </PrivateRoute>
             }
-          /> */}
+          />
           
           <Route
             path="/unauthorized"

@@ -46,78 +46,86 @@ exports.processCheckout = async (req, res) => {
 exports.processCheckin = async (req, res) => {
     try {
         const {
-        rentalId,
-        checkinMileage,
-        fuelLevelIn,
-        conditionNotesIn,
-        lateFee,
-        damageFee,
-        otherCharges
+            rentalId,
+            checkinMileage,
+            fuelLevelIn,
+            conditionNotesIn,
+            lateFee = 0,
+            damageFee = 0,
+            otherCharges = 0
         } = req.body;
 
-        //====== to get rental info
+        //====== Get active rental info
         const [rentals] = await promisePool.query(
-        `SELECT r.*, b.vehicle_id, b.start_date, b.end_date, b.total_amount, v.daily_rate
-        FROM Rental r
-        JOIN Booking b ON r.booking_id = b.booking_id
-        JOIN Vehicle v ON b.vehicle_id = v.vehicle_id
-        WHERE r.rental_id = ? AND r.status = 'active'`,
-        [rentalId]
+            `SELECT r.*, b.vehicle_id, b.start_date, b.end_date, b.total_amount, v.daily_rate
+             FROM Rental r
+             JOIN Booking b ON r.booking_id = b.booking_id
+             JOIN Vehicle v ON b.vehicle_id = v.vehicle_id
+             WHERE r.rental_id = ? AND r.status = 'active'`,
+            [rentalId]
         );
 
         if (rentals.length === 0) {
-        return res.status(404).json({ success: false, message: 'Active rental not found' });
+            return res.status(404).json({ success: false, message: 'Active rental not found' });
         }
 
         const rental = rentals[0];
 
-        //====== to update rental record
+        //====== Update rental record
         await promisePool.query(
-        `UPDATE Rental
-        SET checkin_date = NOW(),
-            checkin_mileage = ?,
-            checkin_staff_id = ?,
-            fuel_level_in = ?,
-            condition_notes_in = ?,
-            status = 'completed'
-        WHERE rental_id = ?`,
-        [checkinMileage, req.user.id, fuelLevelIn, conditionNotesIn, rentalId]
+            `UPDATE Rental
+             SET checkin_date = NOW(),
+                 checkin_mileage = ?,
+                 checkin_staff_id = ?,
+                 fuel_level_in = ?,
+                 condition_notes_in = ?,
+                 status = 'completed'
+             WHERE rental_id = ?`,
+            [checkinMileage, req.user.id, fuelLevelIn, conditionNotesIn, rentalId]
         );
 
-        //====== to update vehicle status back to available
+        //====== Update vehicle status and mileage
         await promisePool.query(
-        'UPDATE Vehicle SET status = "available", mileage = ? WHERE vehicle_id = ?',
-        [checkinMileage, rental.vehicle_id]
+            `UPDATE Vehicle
+             SET status = 'available', mileage = ?
+             WHERE vehicle_id = ?`,
+            [checkinMileage, rental.vehicle_id]
         );
 
-        //====== to update booking status
+        //====== Update booking status
         await promisePool.query(
-        'UPDATE Booking SET status = "completed" WHERE booking_id = ?',
-        [rental.booking_id]
+            `UPDATE Booking
+             SET status = 'completed'
+             WHERE booking_id = ?`,
+            [rental.booking_id]
         );
 
-        //====== to calculate rental days
-        const startDate = new Date(rental.start_date);
-        const endDate = new Date(rental.end_date);
-        const actualEndDate = new Date();
-        const rentalDays = Math.ceil((actualEndDate - startDate) / (1000 * 60 * 60 * 24));
+        //====== Calculate rental days
+        const checkoutDate = new Date(rental.checkout_date);
+        const checkinDate = new Date(); // actual check-in time
+        let rentalDays = Math.ceil((checkinDate - checkoutDate) / (1000 * 60 * 60 * 24));
+        if (rentalDays < 1) rentalDays = 1; // minimum 1 day
 
+        //====== Calculate amounts
         const baseAmount = rental.daily_rate * rentalDays;
         const taxAmount = baseAmount * 0.15;
-        const totalAmount = baseAmount + (lateFee || 0) + (damageFee || 0) + (otherCharges || 0) + taxAmount;
+        const totalAmount = baseAmount + parseFloat(lateFee) + parseFloat(damageFee) + parseFloat(otherCharges) + taxAmount;
 
-        //====== to create invoice
+        //====== Create invoice
         await promisePool.query(
             `INSERT INTO Invoice
-            (rental_id, rental_days, base_amount, late_fee, damage_fee, other_charges, tax_amount, total_amount, payment_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-            [rentalId, rentalDays, baseAmount, lateFee || 0, damageFee || 0, otherCharges || 0, taxAmount, totalAmount]
+             (rental_id, rental_days, base_amount, late_fee, damage_fee, other_charges, tax_amount, total_amount, payment_status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [rentalId, rentalDays, baseAmount, lateFee, damageFee, otherCharges, taxAmount, totalAmount]
         );
 
-        const [updatedRental] = await promisePool.query('SELECT * FROM Rentals WHERE rental_id = ?', [rentalId]);
+        //====== Return updated rental info
+        const [updatedRental] = await promisePool.query('SELECT * FROM Rental WHERE rental_id = ?', [rentalId]);
 
         res.json({ success: true, data: updatedRental[0], message: 'Check-in processed successfully' });
+
     } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };

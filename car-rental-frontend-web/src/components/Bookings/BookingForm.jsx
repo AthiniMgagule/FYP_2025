@@ -48,6 +48,7 @@ const BookingForm = ({ booking, onClose }) => {
     }
   };
 
+
   const calculateTotal = () => {
     if (formData.vehicleId && formData.startDate && formData.endDate) {
       const vehicle = vehicles.find(v => v.vehicle_id === parseInt(formData.vehicleId));
@@ -132,7 +133,7 @@ const BookingForm = ({ booking, onClose }) => {
                 <option value="">Select Vehicle</option>
                 {vehicles.map((vehicle) => (
                   <option key={vehicle.vehicle_id} value={vehicle.vehicle_id}>
-                    {vehicle.make} {vehicle.model} ({vehicle.registration_number}) - ${vehicle.daily_rate}/day
+                    {vehicle.make} {vehicle.model} ({vehicle.registration_number}) - R{vehicle.daily_rate}/day
                   </option>
                 ))}
               </select>
@@ -166,7 +167,7 @@ const BookingForm = ({ booking, onClose }) => {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <label className="block text-gray-700 font-semibold mb-2">Total Amount</label>
                 <p className="text-3xl font-bold text-blue-600">
-                  ${formData.totalAmount.toFixed(2)}
+                  R{formData.totalAmount.toFixed(2)}
                 </p>
               </div>
             </div>

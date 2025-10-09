@@ -74,6 +74,34 @@ exports.createBooking = async (req, res) => {
     }
 };
 
+//======
+exports.getAllBookings = async (req, res) => {
+  try {
+    const [bookings] = await promisePool.query(
+      `SELECT 
+         b.booking_id,
+         b.start_date,
+         b.end_date,
+         b.total_amount,
+         b.status,
+         c.first_name,
+         c.last_name,
+         v.make,
+         v.model,
+         v.registration_number
+       FROM Booking b
+       JOIN Customer c ON b.customer_id = c.customer_id
+       JOIN Vehicle v ON b.vehicle_id = v.vehicle_id
+       ORDER BY b.booking_date DESC`
+    );
+
+    res.json({ success: true, count: bookings.length, data: bookings });
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 //====== to get customer bookings (R)
 exports.getCustomerBookings = async (req, res) => {
     try {
@@ -142,7 +170,7 @@ exports.updateBooking = async (req, res) => {
 exports.cancelBooking = async (req, res) => {
     try {
         await promisePool.query(
-            `UPDATE Bookings SET status = 'cancelled' WHERE booking_id = ?`,
+            `UPDATE Booking SET status = 'cancelled' WHERE booking_id = ?`,
             [req.params.id]
         );
         

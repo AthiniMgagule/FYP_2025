@@ -127,7 +127,7 @@ const MaintenanceList = () => {
                 <td className="px-4 py-3 text-sm">
                   {new Date(record.scheduled_date).toLocaleDateString()}
                 </td>
-                <td className="px-4 py-3 text-sm">${record.cost?.toFixed(2) || '0.00'}</td>
+                <td className="px-4 py-3 text-sm">R{record.cost != null ? Number(record.cost).toFixed(2) : '0.00'}</td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 text-xs rounded-full ${
                     record.status === 'completed' ? 'bg-green-100 text-green-800' :

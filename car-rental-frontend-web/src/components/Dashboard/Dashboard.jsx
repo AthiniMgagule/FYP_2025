@@ -32,13 +32,13 @@ const Dashboard = () => {
     { title: 'Total Customers', value: stats?.overview?.total_customers || 0, icon: FaUsers, color: 'bg-purple-500' },
     {
       title: 'Pending Payments',
-      value: `$${Number(stats?.overview?.pending_payments || 0).toFixed(2)}`,
+      value: `R${Number(stats?.overview?.pending_payments || 0).toFixed(2)}`,
       icon: FaDollarSign,
       color: 'bg-red-500'
     },
     {
       title: 'Revenue (30 Days)',
-      value: `$${Number(stats?.overview?.revenue_last_30_days || 0).toFixed(2)}`,
+      value: `R${Number(stats?.overview?.revenue_last_30_days || 0).toFixed(2)}`,
       icon: FaDollarSign,
       color: 'bg-green-600'
     },

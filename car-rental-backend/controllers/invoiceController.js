@@ -68,6 +68,7 @@ exports.getInvoiceById = async (req, res) => {
   }
 };
 
+
 exports.updateInvoice = async (req, res) => {
   try {
     const { lateFee, damageFee, otherCharges, notes } = req.body;

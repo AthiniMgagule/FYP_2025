@@ -2,6 +2,11 @@ import React from 'react';
 import { FaTimes } from 'react-icons/fa';
 
 const InvoiceDetails = ({ invoice, onClose }) => {
+  // Helper to safely format numbers
+  const formatCurrency = (amount) => Number(amount || 0).toFixed(2);
+
+  const balanceDue = Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -12,6 +17,7 @@ const InvoiceDetails = ({ invoice, onClose }) => {
           </button>
         </div>
 
+        {/* Invoice & Rental Info */}
         <div className="border-b pb-4 mb-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -33,6 +39,7 @@ const InvoiceDetails = ({ invoice, onClose }) => {
           </div>
         </div>
 
+        {/* Customer Info */}
         <div className="mb-6">
           <h3 className="text-lg font-bold text-gray-800 mb-3">Customer Information</h3>
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -42,6 +49,7 @@ const InvoiceDetails = ({ invoice, onClose }) => {
           </div>
         </div>
 
+        {/* Rental Info */}
         <div className="mb-6">
           <h3 className="text-lg font-bold text-gray-800 mb-3">Rental Information</h3>
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -53,6 +61,7 @@ const InvoiceDetails = ({ invoice, onClose }) => {
           </div>
         </div>
 
+        {/* Charges */}
         <div className="border-t pt-4">
           <table className="w-full mb-4">
             <thead>
@@ -64,29 +73,35 @@ const InvoiceDetails = ({ invoice, onClose }) => {
             <tbody>
               <tr className="border-b">
                 <td className="py-2">Base Rental Cost</td>
-                <td className="text-right">${invoice.base_amount?.toFixed(2) || '0.00'}</td>
+                <td className="text-right">R{formatCurrency(invoice.base_amount)}</td>
               </tr>
               <tr className="border-b">
-                <td className="py-2">Additional Charges</td>
-                <td className="text-right">${invoice.additional_charges?.toFixed(2) || '0.00'}</td>
+                <td className="py-2">Late Fee</td>
+                <td className="text-right">R{formatCurrency(invoice.late_fee)}</td>
+              </tr>
+              <tr className="border-b">
+                <td className="py-2">Damage Fee</td>
+                <td className="text-right">R{formatCurrency(invoice.damage_fee)}</td>
+              </tr>
+              <tr className="border-b">
+                <td className="py-2">Other Charges</td>
+                <td className="text-right">R{formatCurrency(invoice.other_charges)}</td>
               </tr>
               <tr className="border-b">
                 <td className="py-2">Tax</td>
-                <td className="text-right">${invoice.tax_amount?.toFixed(2) || '0.00'}</td>
+                <td className="text-right">R{formatCurrency(invoice.tax_amount)}</td>
               </tr>
               <tr className="border-b font-bold text-lg">
                 <td className="py-2">Total Amount</td>
-                <td className="text-right">${invoice.total_amount?.toFixed(2)}</td>
+                <td className="text-right">R{formatCurrency(invoice.total_amount)}</td>
               </tr>
               <tr className="border-b text-green-600">
                 <td className="py-2">Paid Amount</td>
-                <td className="text-right">${invoice.paid_amount?.toFixed(2) || '0.00'}</td>
+                <td className="text-right">R{formatCurrency(invoice.paid_amount)}</td>
               </tr>
               <tr className="font-bold text-lg">
                 <td className="py-2">Balance Due</td>
-                <td className="text-right text-red-600">
-                  ${((invoice.total_amount || 0) - (invoice.paid_amount || 0)).toFixed(2)}
-                </td>
+                <td className="text-right text-red-600">R{formatCurrency(balanceDue)}</td>
               </tr>
             </tbody>
           </table>

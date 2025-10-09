@@ -7,7 +7,7 @@ exports.getFleetReport = async (req, res) => {
       SELECT 
         status,
         COUNT(*) as count
-      FROM Vehicles
+      FROM Vehicle
       GROUP BY status
     `);
 
@@ -27,7 +27,7 @@ exports.getFleetReport = async (req, res) => {
         SUM(daily_rate * 365) as estimated_fleet_value,
         COUNT(*) as total_vehicles,
         AVG(daily_rate) as avg_daily_rate
-      FROM Vehicles
+      FROM Vehicle
     `);
 
     // Get vehicles details
@@ -62,12 +62,13 @@ exports.getCustomerActivityReport = async (req, res) => {
         c.customer_id,
         c.first_name,
         c.last_name,
-        c.email,
+        u.email,
         c.phone_number,
-        COUNT(DISTINCT b.booking_id) as total_bookings,
-        COUNT(DISTINCT r.rental_id) as completed_rentals,
-        SUM(CASE WHEN i.payment_status = 'paid' THEN i.total_amount ELSE 0 END) as total_revenue
+        COUNT(DISTINCT b.booking_id) AS total_bookings,
+        COUNT(DISTINCT r.rental_id) AS completed_rentals,
+        SUM(CASE WHEN i.payment_status = 'paid' THEN i.total_amount ELSE 0 END) AS total_revenue
       FROM Customer c
+      JOIN User u ON c.user_id = u.user_id
       LEFT JOIN Booking b ON c.customer_id = b.customer_id
       LEFT JOIN Rental r ON b.booking_id = r.booking_id AND r.status = 'completed'
       LEFT JOIN Invoice i ON r.rental_id = i.rental_id
@@ -81,18 +82,19 @@ exports.getCustomerActivityReport = async (req, res) => {
       SELECT 
         r.rental_id,
         b.booking_id,
-        b.end_date as expected_return_date,
+        b.end_date AS expected_return_date,
         c.first_name,
         c.last_name,
         c.phone_number,
-        c.email,
+        u.email,
         v.make,
         v.model,
         v.registration_number,
-        DATEDIFF(CURDATE(), b.end_date) as days_overdue
+        DATEDIFF(CURDATE(), b.end_date) AS days_overdue
       FROM Rental r
       JOIN Booking b ON r.booking_id = b.booking_id
       JOIN Customer c ON b.customer_id = c.customer_id
+      JOIN User u ON c.user_id = u.user_id
       JOIN Vehicle v ON b.vehicle_id = v.vehicle_id
       WHERE r.status = 'active' AND b.end_date < CURDATE()
       ORDER BY days_overdue DESC
@@ -101,8 +103,8 @@ exports.getCustomerActivityReport = async (req, res) => {
     // Get customer registration trends (last 12 months)
     const [registrationTrends] = await promisePool.query(`
       SELECT 
-        DATE_FORMAT(created_at, '%Y-%m') as month,
-        COUNT(*) as new_customers
+        DATE_FORMAT(created_at, '%Y-%m') AS month,
+        COUNT(*) AS new_customers
       FROM User
       WHERE role = 'customer'
         AND created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
@@ -113,11 +115,11 @@ exports.getCustomerActivityReport = async (req, res) => {
     // Get active vs inactive customers
     const [customerStatus] = await promisePool.query(`
       SELECT 
-        COUNT(DISTINCT c.customer_id) as total_customers,
-        COUNT(DISTINCT CASE WHEN b.booking_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) 
-              THEN c.customer_id END) as active_customers,
-        COUNT(DISTINCT CASE WHEN b.booking_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH) 
-              OR b.booking_id IS NULL THEN c.customer_id END) as inactive_customers
+        COUNT(DISTINCT c.customer_id) AS total_customers,
+        COUNT(DISTINCT CASE WHEN b.booking_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+              THEN c.customer_id END) AS active_customers,
+        COUNT(DISTINCT CASE WHEN b.booking_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+              OR b.booking_id IS NULL THEN c.customer_id END) AS inactive_customers
       FROM Customer c
       LEFT JOIN Booking b ON c.customer_id = b.customer_id
     `);
@@ -125,9 +127,9 @@ exports.getCustomerActivityReport = async (req, res) => {
     res.json({
       success: true,
       data: {
-        frequentRenters: frequentRenters,
-        overdueReturns: overdueReturns,
-        registrationTrends: registrationTrends,
+        frequentRenters,
+        overdueReturns,
+        registrationTrends,
         customerStatus: customerStatus[0]
       }
     });
@@ -235,85 +237,85 @@ exports.getRevenueReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    let dateFilter = '';
+    let dateFilter = 'invoice_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)';
     const params = [];
 
     if (startDate && endDate) {
-      dateFilter = 'WHERE i.invoice_date BETWEEN ? AND ?';
+      dateFilter = 'invoice_date BETWEEN ? AND ?';
       params.push(startDate, endDate);
-    } else {
-      dateFilter = 'WHERE i.invoice_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)';
     }
 
-    // Total revenue breakdown
+    // 1️⃣ Total revenue breakdown
     const [revenueBreakdown] = await promisePool.query(`
       SELECT 
-        COUNT(*) as total_invoices,
-        SUM(base_amount) as total_base_revenue,
-        SUM(late_fee) as total_late_fees,
-        SUM(damage_fee) as total_damage_fees,
-        SUM(other_charges) as total_other_charges,
-        SUM(tax_amount) as total_tax,
-        SUM(total_amount) as total_revenue,
-        AVG(total_amount) as avg_transaction_value
-      FROM Invoice i
-      ${dateFilter}
+        COUNT(*) AS total_invoices,
+        COALESCE(SUM(base_amount), 0) AS total_base_revenue,
+        COALESCE(SUM(late_fee), 0) AS total_late_fees,
+        COALESCE(SUM(damage_fee), 0) AS total_damage_fees,
+        COALESCE(SUM(other_charges), 0) AS total_other_charges,
+        COALESCE(SUM(tax_amount), 0) AS total_tax,
+        COALESCE(SUM(total_amount), 0) AS total_revenue,
+        COALESCE(AVG(total_amount), 0) AS avg_transaction_value
+      FROM Invoice
+      WHERE ${dateFilter}
     `, params);
 
-    // Revenue by vehicle category
+    // 2️⃣ Revenue by vehicle category
     const [revenueByCategory] = await promisePool.query(`
       SELECT 
         v.category,
-        COUNT(i.invoice_id) as invoice_count,
-        SUM(i.total_amount) as total_revenue,
-        AVG(i.total_amount) as avg_revenue
+        COUNT(i.invoice_id) AS invoice_count,
+        COALESCE(SUM(i.total_amount), 0) AS total_revenue,
+        COALESCE(AVG(i.total_amount), 0) AS avg_revenue
       FROM Invoice i
-      JOIN Rental r ON i.rental_id = r.rental_id
-      JOIN Booking b ON r.booking_id = b.booking_id
-      JOIN Vehicle v ON b.vehicle_id = v.vehicle_id
-      ${dateFilter}
+      LEFT JOIN Rental r ON i.rental_id = r.rental_id
+      LEFT JOIN Booking b ON r.booking_id = b.booking_id
+      LEFT JOIN Vehicle v ON b.vehicle_id = v.vehicle_id
+      WHERE ${dateFilter.replace(/invoice_date/g, 'i.invoice_date')}
       GROUP BY v.category
       ORDER BY total_revenue DESC
     `, params);
 
-    // Monthly revenue
+    // 3️⃣ Monthly revenue
     const [monthlyRevenue] = await promisePool.query(`
       SELECT 
-        DATE_FORMAT(invoice_date, '%Y-%m') as month,
-        COUNT(*) as invoice_count,
-        SUM(base_amount) as base_revenue,
-        SUM(late_fee + damage_fee + other_charges) as additional_fees,
-        SUM(total_amount) as total_revenue
+        DATE_FORMAT(invoice_date, '%Y-%m') AS month,
+        COUNT(*) AS invoice_count,
+        COALESCE(SUM(base_amount), 0) AS base_revenue,
+        COALESCE(SUM(late_fee + damage_fee + other_charges), 0) AS additional_fees,
+        COALESCE(SUM(total_amount), 0) AS total_revenue
       FROM Invoice
-      ${dateFilter}
+      WHERE ${dateFilter}
       GROUP BY DATE_FORMAT(invoice_date, '%Y-%m')
       ORDER BY month
     `, params);
 
-    // Payment status summary
+    // 4️⃣ Payment status summary
     const [paymentStatus] = await promisePool.query(`
       SELECT 
         payment_status,
-        COUNT(*) as count,
-        SUM(total_amount) as amount
+        COUNT(*) AS count,
+        COALESCE(SUM(total_amount), 0) AS amount
       FROM Invoice
-      ${dateFilter}
+      WHERE ${dateFilter}
       GROUP BY payment_status
     `, params);
 
     res.json({
       success: true,
       data: {
-        summary: revenueBreakdown[0],
+        summary: revenueBreakdown[0] || {},
         byCategory: revenueByCategory,
         monthly: monthlyRevenue,
         paymentStatus: paymentStatus
       }
     });
   } catch (error) {
+    console.error('Error in getRevenueReport:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
+
 
 exports.getMaintenanceReport = async (req, res) => {
   try {

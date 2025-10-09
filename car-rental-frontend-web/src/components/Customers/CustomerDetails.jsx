@@ -13,12 +13,17 @@ const CustomerDetails = ({ customer, onClose }) => {
   const fetchRentalHistory = async () => {
     try {
       const response = await getCustomerRentalHistory(customer.customer_id);
-      setRentalHistory(response.data.data);
+      setRentalHistory(response.data.data || []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching rental history:', error);
       setLoading(false);
     }
+  };
+
+  const formatCurrency = (amount) => {
+    const num = Number(amount);
+    return isNaN(num) ? 'Pending' : num.toFixed(2);
   };
 
   return (
@@ -31,6 +36,7 @@ const CustomerDetails = ({ customer, onClose }) => {
           </button>
         </div>
 
+        {/* Personal Info */}
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-500 pb-2">
             Personal Information
@@ -63,6 +69,7 @@ const CustomerDetails = ({ customer, onClose }) => {
           </div>
         </div>
 
+        {/* Rental History */}
         <div>
           <h3 className="text-xl font-semibold text-gray-800 mb-4 border-b-2 border-blue-500 pb-2">
             Rental History
@@ -91,7 +98,7 @@ const CustomerDetails = ({ customer, onClose }) => {
                       <td className="px-4 py-3 text-sm">
                         {rental.checkin_date ? new Date(rental.checkin_date).toLocaleDateString() : 'Active'}
                       </td>
-                      <td className="px-4 py-3 text-sm">${rental.total_amount?.toFixed(2) || 'Pending'}</td>
+                      <td className="px-4 py-3 text-sm">R{formatCurrency(rental.total_amount)}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 text-xs rounded-full ${
                           rental.payment_status === 'paid' ? 'bg-green-100 text-green-800' :

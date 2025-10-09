@@ -18,7 +18,7 @@ const InvoiceList = () => {
 
   const fetchInvoices = async () => {
     try {
-      const params = filter !== 'all' ? { payment_status: filter } : {};
+      const params = filter !== 'all' ? { paymentStatus: filter } : {};
       const response = await getInvoices(params);
       setInvoices(response.data.data || []);
       setLoading(false);
@@ -38,6 +38,23 @@ const InvoiceList = () => {
     setShowPayment(true);
   };
 
+  // **New function**: handle actual payment submission
+  const handleProcessPaymentSubmit = async (paymentMethod) => {
+    try {
+      if (!selectedInvoice) return;
+
+      const response = await processPayment(selectedInvoice.invoice_id, { paymentMethod });
+      console.log('Payment processed:', response.data);
+
+      // Refresh invoices and close modal
+      setShowPayment(false);
+      setSelectedInvoice(null);
+      fetchInvoices();
+    } catch (error) {
+      console.error('Error processing payment:', error);
+    }
+  };
+
   const handleCloseModal = () => {
     setShowDetails(false);
     setShowPayment(false);
@@ -54,38 +71,17 @@ const InvoiceList = () => {
       </div>
 
       <div className="flex gap-4 mb-6">
-        <button 
-          className={`px-4 py-2 rounded-lg transition ${
-            filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={() => setFilter('all')}
-        >
-          All Invoices
-        </button>
-        <button 
-          className={`px-4 py-2 rounded-lg transition ${
-            filter === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={() => setFilter('pending')}
-        >
-          Pending
-        </button>
-        <button 
-          className={`px-4 py-2 rounded-lg transition ${
-            filter === 'paid' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={() => setFilter('paid')}
-        >
-          Paid
-        </button>
-        <button 
-          className={`px-4 py-2 rounded-lg transition ${
-            filter === 'overdue' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-          onClick={() => setFilter('overdue')}
-        >
-          Overdue
-        </button>
+        {['all', 'pending', 'paid', 'overdue'].map((status) => (
+          <button
+            key={status}
+            className={`px-4 py-2 rounded-lg transition ${
+              filter === status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            onClick={() => setFilter(status)}
+          >
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </button>
+        ))}
       </div>
 
       <div className="overflow-x-auto">
@@ -108,10 +104,10 @@ const InvoiceList = () => {
                 <td className="px-4 py-3 text-sm">#{invoice.invoice_id}</td>
                 <td className="px-4 py-3 text-sm">#{invoice.rental_id}</td>
                 <td className="px-4 py-3 text-sm">{invoice.first_name} {invoice.last_name}</td>
-                <td className="px-4 py-3 text-sm">${Number(invoice.total_amount || 0).toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm">${invoice.paid_amount?.toFixed(2) || '0.00'}</td>
+                <td className="px-4 py-3 text-sm font-semibold">R{Number(invoice.total_amount || 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm">R{Number(invoice.paid_amount || 0).toFixed(2)}</td>
                 <td className="px-4 py-3 text-sm font-semibold">
-                  ${((invoice.total_amount || 0) - (invoice.paid_amount || 0)).toFixed(2)}
+                  R{((invoice.total_amount || 0) - (invoice.paid_amount || 0)).toFixed(2)}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 text-xs rounded-full ${
@@ -160,6 +156,7 @@ const InvoiceList = () => {
         <PaymentForm 
           invoice={selectedInvoice}
           onClose={handleCloseModal}
+          onSubmit={handleProcessPaymentSubmit} // pass the new handler
         />
       )}
     </div>

@@ -4,9 +4,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Add token to requests
@@ -42,6 +39,7 @@ export const updateCustomer = (id, data) => api.put(`/customers/${id}`, data);
 export const getCustomerRentalHistory = (id) => api.get(`/customers/${id}/rental-history`);
 
 // Bookings
+export const getAllBookings = () => api.get('/bookings');
 export const searchVehicles = (params) => api.get('/bookings/search', { params });
 export const getCustomerBookings = (customerId) => api.get(`/bookings/customer/${customerId}`);
 export const createBooking = (data) => api.post('/bookings', data);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { searchVehicles, createBooking, updateBooking, cancelBooking } from '../../services/api';
+import { getAllBookings, updateBooking, cancelBooking } from '../../services/api';
 import { FaPlus, FaEdit, FaTrash, FaCheck, FaTimes } from 'react-icons/fa';
 import BookingForm from './BookingForm';
 
@@ -14,17 +14,23 @@ const BookingList = () => {
     fetchBookings();
   }, [filter]);
 
-  const fetchBookings = async () => {
-    try {
-      // Using searchVehicles to get bookings (you might need to create a separate getBookings endpoint)
-      const response = await searchVehicles({ status: filter !== 'all' ? filter : undefined });
-      setBookings(response.data.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-      setLoading(false);
-    }
-  };
+ const fetchBookings = async () => {
+     try {
+       const response = await getAllBookings();
+       let data = response.data.data || [];
+ 
+       // Optional: filter by status if you want client-side filtering
+       if (filter !== 'all') {
+         data = data.filter(b => b.status === filter);
+       }
+ 
+       setBookings(data);
+       setLoading(false);
+     } catch (error) {
+       console.error('Error fetching bookings:', error);
+       setLoading(false);
+     }
+   };
 
   const handleEdit = (booking) => {
     setSelectedBooking(booking);
@@ -131,7 +137,7 @@ const BookingList = () => {
                 <td className="px-4 py-3 text-sm">{booking.start_date ? new Date(booking.start_date).toLocaleDateString() : 'N/A'}</td>
                 <td className="px-4 py-3 text-sm">{booking.end_date ? new Date(booking.end_date).toLocaleDateString() : 'N/A'}</td>
 
-                <td className="px-4 py-3 text-sm">${Number(booking.total_amount || 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm">R{Number(booking.total_amount || 0).toFixed(2)}</td>
 
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 text-xs rounded-full ${

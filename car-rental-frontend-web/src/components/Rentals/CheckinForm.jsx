@@ -8,8 +8,11 @@ const CheckinForm = ({ rental, onClose }) => {
     checkinMileage: '',
     fuelLevelIn: 'full',
     conditionNotesIn: '',
-    additionalCharges: 0,
+    lateFee: 0,
+    damageFee: 0,
+    otherCharges: 0,
   });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,7 +22,16 @@ const CheckinForm = ({ rental, onClose }) => {
     setError('');
 
     try {
-      await processCheckin(formData);
+      // Convert fees to numbers before sending
+      const payload = {
+        ...formData,
+        checkinMileage: parseFloat(formData.checkinMileage) || 0,
+        lateFee: parseFloat(formData.lateFee) || 0,
+        damageFee: parseFloat(formData.damageFee) || 0,
+        otherCharges: parseFloat(formData.otherCharges) || 0,
+      };
+
+      await processCheckin(payload);
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Error processing check-in');
@@ -30,6 +42,7 @@ const CheckinForm = ({ rental, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Process Check-in</h2>
           <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
@@ -58,6 +71,7 @@ const CheckinForm = ({ rental, onClose }) => {
         )}
 
         <form onSubmit={handleSubmit}>
+          {/* Mileage */}
           <div className="mb-4">
             <label className="block text-gray-700 font-semibold mb-2">Return Mileage *</label>
             <input
@@ -71,6 +85,7 @@ const CheckinForm = ({ rental, onClose }) => {
             />
           </div>
 
+          {/* Fuel Level */}
           <div className="mb-4">
             <label className="block text-gray-700 font-semibold mb-2">Fuel Level *</label>
             <select
@@ -87,6 +102,7 @@ const CheckinForm = ({ rental, onClose }) => {
             </select>
           </div>
 
+          {/* Condition Notes */}
           <div className="mb-4">
             <label className="block text-gray-700 font-semibold mb-2">Condition Notes</label>
             <textarea
@@ -98,31 +114,54 @@ const CheckinForm = ({ rental, onClose }) => {
             />
           </div>
 
+          {/* Fees */}
           <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">Additional Charges ($)</label>
+            <label className="block text-gray-700 font-semibold mb-2">Late Fee (R)</label>
             <input
               type="number"
               step="0.01"
-              value={formData.additionalCharges}
-              onChange={(e) => setFormData({ ...formData, additionalCharges: e.target.value })}
-              placeholder="Late fees, damage charges, etc."
+              value={formData.lateFee}
+              onChange={(e) => setFormData({ ...formData, lateFee: e.target.value })}
+              placeholder="Late fee"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Include any late fees, damage charges, or refueling charges
-            </p>
           </div>
 
+          <div className="mb-4">
+            <label className="block text-gray-700 font-semibold mb-2">Damage Fee (R)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.damageFee}
+              onChange={(e) => setFormData({ ...formData, damageFee: e.target.value })}
+              placeholder="Damage fee"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-gray-700 font-semibold mb-2">Other Charges (R)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={formData.otherCharges}
+              onChange={(e) => setFormData({ ...formData, otherCharges: e.target.value })}
+              placeholder="Other charges (refueling, etc.)"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Actions */}
           <div className="flex justify-end gap-4">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onClose}
               className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:bg-gray-400"
             >
